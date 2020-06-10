@@ -18,8 +18,10 @@ type
     FHTTPProxyPassword: String;
     FHTTPProxyPort: Word;
     FHTTPProxyUsername: String;
+    FLogDebug: Boolean;
     FLogger: TEventLog;
     FOptions: TStrings;
+    FOutputTemplate: String;
     FUrl: String;
     procedure DoLog(aEventType: TEventType; const aMessage: String);
     procedure SetLogger(AValue: TEventLog);
@@ -30,9 +32,11 @@ type
     constructor Create;
     destructor Destroy; override;
     function Download(const aUrl: String = ''): Boolean;
+    property LogDebug: Boolean read FLogDebug write FLogDebug;
     property Logger: TEventLog read FLogger write SetLogger;
     property Url: String read FUrl write SetUrl;   
     property Options: TStrings read FOptions write SetOptions;
+    property OutputTemplate: String read FOutputTemplate write FOutputTemplate;
     property HTTPProxyHost: String read FHTTPProxyHost write FHTTPProxyHost;
     property HTTPProxyPort: Word read FHTTPProxyPort write FHTTPProxyPort; 
     property HTTPProxyUsername: String read FHTTPProxyUsername write FHTTPProxyUsername;
@@ -52,7 +56,7 @@ end;
 
 procedure TYoutubeDL.DoLog(aEventType: TEventType; const aMessage: String);
 begin
-  if Assigned(FLogger) then
+  if Assigned(FLogger) and (FLogDebug or (aEventType<>etDebug)) then
     FLogger.Log(aEventType, aMessage);
 end;
 
@@ -100,7 +104,13 @@ begin
         aProcess.Parameters.Add('--proxy');
         aProcess.Parameters.Add(aProxyString);
       end;
+      if FOutputTemplate<>EmptyStr then
+      begin
+        aProcess.Parameters.Add('-o'); 
+        aProcess.Parameters.Add(FOutputTemplate);
+      end;
       aProcess.Options:=[poUsePipes, poStderrToOutPut, poNoConsole];
+      DoLog(etDebug, 'Start of downloading url '+FUrl);
       aProcess.Execute;
       aOutputStream := TMemoryStream.Create;
 
@@ -115,6 +125,10 @@ begin
         CopyFrom(aOutputStream, aOutputStream.Size);
         Free
       end;
+      Result:=aProcess.ExitStatus=0;
+      DoLog(etDebug, 'End of downloading');
+      DoLog(etInfo, 'ExitStatus: '+aProcess.ExitStatus.ToString);
+      DoLog(etError, 'Youtube-dl error is occured while downloading! See '+'~youtube-output.txt');
       aOutputStream.Free;
     finally
       aProcess.Free;
