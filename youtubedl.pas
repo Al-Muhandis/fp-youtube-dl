@@ -133,7 +133,6 @@ begin
     finally
       aProcess.Free;
     end;
-    Result:=True;
   except
     on E: Exception do
       DoLog(etError, E.ClassName+': '+E.Message);
