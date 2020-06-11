@@ -14,10 +14,12 @@ type
 
   TYoutubeDL = class
   private
+    FDestFile: String;
     FHTTPProxyHost: String;
     FHTTPProxyPassword: String;
     FHTTPProxyPort: Word;
     FHTTPProxyUsername: String;
+    FLibPath: String;
     FLogDebug: Boolean;
     FLogger: TEventLog;
     FOptions: TStrings;
@@ -28,10 +30,13 @@ type
     procedure SetOptions(AValue: TStrings);
     procedure SetUrl(AValue: String);
     function InternalDownload: Boolean;
+    function ExtractDestFileName(const aOutput: String): String;
   public
     constructor Create;
     destructor Destroy; override;
     function Download(const aUrl: String = ''): Boolean;
+    property DestFile: String read FDestFile write FDestFile;
+    property LibPath: String read FLibPath write FLibPath;
     property LogDebug: Boolean read FLogDebug write FLogDebug;
     property Logger: TEventLog read FLogger write SetLogger;
     property Url: String read FUrl write SetUrl;   
@@ -41,10 +46,29 @@ type
     property HTTPProxyPort: Word read FHTTPProxyPort write FHTTPProxyPort; 
     property HTTPProxyUsername: String read FHTTPProxyUsername write FHTTPProxyUsername;
     property HTTPProxyPassword: String read FHTTPProxyPassword write FHTTPProxyPassword;
-
   end;
 
 implementation
+
+uses
+  strutils
+  ;
+
+function ExtractBetweenKeys(const ASource, Key1, Key2: String; out ADest: String): Boolean;
+var
+  AStart, AnEnd: Integer;
+begin
+  Result := False;
+  AStart := Pos(Key1, ASource);
+  if AStart <> 0 then
+  begin
+    Inc(AStart, Length(Key1));
+    AnEnd := PosEx(Key2, ASource, AStart);
+    Result := AnEnd <> 0;
+    if Result then
+      ADest := copy(ASource, AStart, AnEnd - AStart);
+  end
+end;
 
 { TYoutubeDL }
 
@@ -84,17 +108,17 @@ const
 var
   aProcess: TProcess;
   aOutputStream: TMemoryStream;
+  aStringStream: TStringStream;
   aBuffer       : array[1..BUF_SIZE] of byte;
   aBytesRead: LongInt;
-  aProxyString: String;
+  aProxyString, aOutput: String;
 begin 
   Result:=False;
   try
     aProcess:=TProcess.Create(nil);
     try
-      aProcess.Executable:={$IFDEF MSWINDOWS}'youtube-dl.exe'{$ENDIF}{$IFDEF UNIX}'youtube-dl'{$ENDIF};
+      aProcess.Executable:={$IFDEF MSWINDOWS}'youtube-dl.exe'{$ENDIF}{$IFDEF UNIX}FLibPath+'youtube-dl'{$ENDIF};
       aProcess.Parameters.AddStrings(FOptions);
-      aProcess.Parameters.Add(FUrl);
       if FHTTPProxyHost<>EmptyStr then
       begin
         aProxyString:=FHTTPProxyHost+':'+IntToStr(FHTTPProxyPort);
@@ -108,7 +132,8 @@ begin
       begin
         aProcess.Parameters.Add('-o'); 
         aProcess.Parameters.Add(FOutputTemplate);
-      end;
+      end;  
+      aProcess.Parameters.Add(FUrl);
       aProcess.Options:=[poUsePipes, poStderrToOutPut, poNoConsole];
       DoLog(etDebug, 'Start of downloading url '+FUrl);
       aProcess.Execute;
@@ -119,16 +144,25 @@ begin
         aOutputStream.Write(aBuffer, aBytesRead)
       until aBytesRead = 0;
 
-      with TFileStream.Create('~youtube-output.txt', fmCreate) do
+      aStringStream:=TStringStream.Create(EmptyStr);
+      aOutputStream.SaveToStream(aStringStream);
+      FDestFile:=ExtractDestFileName(aStringStream.DataString);
+      if FDestFile=EmptyStr then
+        DoLog(etError, 'Destination file is not determined in the output buffer');
+      aStringStream.Free;
+      aOutput:='~youtube-dl.txt';
+      with TFileStream.Create(aOutput, fmCreate) do
       begin
-        aOutputStream.Position := 0; // Required to make sure all data is copied from the start
+        aOutputStream.Position := 0;
         CopyFrom(aOutputStream, aOutputStream.Size);
         Free
       end;
       Result:=aProcess.ExitStatus=0;
       DoLog(etDebug, 'End of downloading');
-      DoLog(etInfo, 'ExitStatus: '+aProcess.ExitStatus.ToString);
-      DoLog(etError, 'Youtube-dl error is occured while downloading! See '+'~youtube-output.txt');
+      DoLog(etInfo, 'ExitStatus: '+aProcess.ExitStatus.ToString); 
+      DoLog(etInfo, 'ExitCode: '+aProcess.ExitCode.ToString);
+      if not Result then
+        DoLog(etError, 'Youtube-dl error is occured while downloading! See '+aOutput);
       aOutputStream.Free;
     finally
       aProcess.Free;
@@ -139,9 +173,24 @@ begin
   end;
 end;
 
+function TYoutubeDL.ExtractDestFileName(const aOutput: String): String;
+const
+  STARTKEY1='[download] Destination:';
+  STARTKEY2='[download] ';
+  ENDKEY1=LineEnding;
+  ENDKEY2=' has already been downloaded';
+begin
+  if not ExtractBetweenKeys(aOutput, STARTKEY1, ENDKEY1, Result) then
+    if not ExtractBetweenKeys(aOutput, STARTKEY2, ENDKEY2, Result) then
+      Exit(EmptyStr);
+  Result:=Trim(Result);
+end;
+
 constructor TYoutubeDL.Create;
 begin
   FOptions:=TStringList.Create;
+  {$IFDEF UNIX}
+  FLibPath:='/usr/local/bin/'{$ENDIF};
 end;
 
 destructor TYoutubeDL.Destroy;
