@@ -30,9 +30,10 @@ type
     procedure SetUp; override;
     procedure TearDown; override;
   public
-    procedure YoutubeDownload;
+    procedure YoutubeDownloadCommon;
   published
-    procedure YoutubeDownloadProxy;
+    procedure YoutubeDownload;
+    procedure YoutubeFormats;
   end;
 
 var
@@ -73,22 +74,28 @@ begin
   inherited TearDown;
 end;
 
-procedure TTestYoutubeDL.YoutubeDownload;
+procedure TTestYoutubeDL.YoutubeDownloadCommon;
 begin
   //FYoutubeDl.Options.Add('--verbose');
   FYoutubeDl.LogDebug:=True;
   FYoutubeDl.Url:=FIni.ReadString('YoutubeDL', 'Url', 'https://www.youtube.com/watch?v=7PuvsyLapgw');
-  AssertTrue('Не удалось загрузить!', FYoutubeDl.Download);
-  AssertNotNull('Не удалось определить путь к выходному файлу!', FYoutubeDl.DestFile);
-end;
-
-procedure TTestYoutubeDL.YoutubeDownloadProxy;
-begin
   FYoutubeDl.HTTPProxyHost:=FIni.ReadString('Proxy', 'Host', EmptyStr);
   FYoutubeDl.HTTPProxyPort:=FIni.ReadInteger('Proxy', 'Port', 0);
   FYoutubeDl.HTTPProxyUsername:=FIni.ReadString('Proxy', 'Username', EmptyStr);
-  FYoutubeDl.HTTPProxyPassword:=FIni.ReadString('Proxy', 'Password', EmptyStr);
-  YoutubeDownload;
+  FYoutubeDl.HTTPProxyPassword:=FIni.ReadString('Proxy', 'Password', EmptyStr); 
+  AssertTrue('Failed to parse!', FYoutubeDl.Execute);
+end;
+
+procedure TTestYoutubeDL.YoutubeDownload;
+begin
+  YoutubeDownloadCommon;
+  AssertNotNull('The path to the output file could not be determined!', FYoutubeDl.DestFile);
+end;
+
+procedure TTestYoutubeDL.YoutubeFormats;
+begin
+  FYoutubeDl.OnlyFormats:=True;
+  YoutubeDownloadCommon;
 end;
 
 initialization

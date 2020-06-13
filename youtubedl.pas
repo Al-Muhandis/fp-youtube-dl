@@ -5,10 +5,27 @@ unit youtubedl;
 interface
 
 uses
-  Classes, SysUtils, process, eventlog
+  Classes, SysUtils, process, eventlog, fgl
   ;
 
 type
+
+  { TFormatObject }
+  { Output format object }
+  TFormatObject = class
+  private
+    FExtension: String;
+    FSelector: Integer;
+  public
+    { selector number }
+    property Selector: Integer read FSelector write FSelector;
+    { filename extension}
+    property Extension: String read FExtension write FExtension;
+  end;
+
+  TFormatList =  class(specialize TFPGObjectList<TFormatObject>)
+
+  end;
 
   { TYoutubeDL }
 
@@ -22,6 +39,7 @@ type
     FLibPath: String;
     FLogDebug: Boolean;
     FLogger: TEventLog;
+    FOnlyFormats: Boolean;
     FOptions: TStrings;
     FOutputTemplate: String;
     FUrl: String;
@@ -29,17 +47,19 @@ type
     procedure SetLogger(AValue: TEventLog);
     procedure SetOptions(AValue: TStrings);
     procedure SetUrl(AValue: String);
-    function InternalDownload: Boolean;
+    function InternalExecute: Boolean;
     function ExtractDestFileName(const aOutput: String): String;
   public
     constructor Create;
     destructor Destroy; override;
-    function Download(const aUrl: String = ''): Boolean;
+    function Download(const aUrl: String = ''): Boolean; deprecated;
+    function Execute(const aUrl: String = ''): Boolean;
     property DestFile: String read FDestFile write FDestFile;
     property LibPath: String read FLibPath write FLibPath;
     property LogDebug: Boolean read FLogDebug write FLogDebug;
     property Logger: TEventLog read FLogger write SetLogger;
-    property Url: String read FUrl write SetUrl;   
+    property Url: String read FUrl write SetUrl;
+    property OnlyFormats: Boolean read FOnlyFormats write FOnlyFormats;
     property Options: TStrings read FOptions write SetOptions;
     property OutputTemplate: String read FOutputTemplate write FOutputTemplate;
     property HTTPProxyHost: String read FHTTPProxyHost write FHTTPProxyHost;
@@ -97,12 +117,17 @@ end;
 
 function TYoutubeDL.Download(const aUrl: String): Boolean;
 begin
-  if aUrl<> EmptyStr then
-    FUrl:=aUrl;
-  Result:=InternalDownload;
+  Result:=Execute(aUrl);
 end;
 
-function TYoutubeDL.InternalDownload: Boolean;
+function TYoutubeDL.Execute(const aUrl: String): Boolean;
+begin
+  if aUrl<> EmptyStr then
+    FUrl:=aUrl;
+  Result:=InternalExecute;
+end;
+
+function TYoutubeDL.InternalExecute: Boolean;
 const
   BUF_SIZE = 2048; // Buffer size for reading the output in chunks
 var
@@ -132,7 +157,9 @@ begin
       begin
         aProcess.Parameters.Add('-o'); 
         aProcess.Parameters.Add(FOutputTemplate);
-      end;  
+      end;
+      if FOnlyFormats then
+        aProcess.Parameters.Add('-F');
       aProcess.Parameters.Add(FUrl);
       aProcess.Options:=[poUsePipes, poStderrToOutPut, poNoConsole];
       DoLog(etDebug, 'Start of downloading url '+FUrl);
