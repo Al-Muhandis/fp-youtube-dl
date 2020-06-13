@@ -145,11 +145,14 @@ begin
       until aBytesRead = 0;
 
       aStringStream:=TStringStream.Create(EmptyStr);
-      aOutputStream.SaveToStream(aStringStream);
-      FDestFile:=ExtractDestFileName(aStringStream.DataString);
-      if FDestFile=EmptyStr then
-        DoLog(etError, 'Destination file is not determined in the output buffer');
-      aStringStream.Free;
+      try
+        aOutputStream.SaveToStream(aStringStream);
+        FDestFile:=ExtractDestFileName(aStringStream.DataString);
+        if FDestFile=EmptyStr then
+          DoLog(etError, 'Destination file is not determined in the output buffer');
+      finally
+        aStringStream.Free;
+      end;
       aOutput:='~youtube-dl.txt';
       with TFileStream.Create(aOutput, fmCreate) do
       begin
