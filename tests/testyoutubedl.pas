@@ -97,6 +97,7 @@ begin
   FYoutubeDl.OnlyFormats:=True;
   YoutubeDownloadCommon;  
   AssertTrue('Failed to parse the formats', FYoutubeDl.Formats.Count>0);
+  AssertTrue('Failed to parse the media id', FYoutubeDl.MediaID<>EmptyStr);
 end;
 
 initialization

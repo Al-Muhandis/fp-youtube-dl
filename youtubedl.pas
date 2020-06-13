@@ -34,6 +34,7 @@ type
   TYoutubeDL = class
   private
     FDestFile: String;
+    FFormat: String;
     FFormats: TFormatList;
     FHTTPProxyHost: String;
     FHTTPProxyPassword: String;
@@ -42,6 +43,7 @@ type
     FLibPath: String;
     FLogDebug: Boolean;
     FLogger: TEventLog;
+    FMediaID: String;
     FOnlyFormats: Boolean;
     FOptions: TStrings;
     FOutputTemplate: String;
@@ -59,11 +61,13 @@ type
     function Download(const aUrl: String = ''): Boolean; deprecated;
     function Execute(const aUrl: String = ''): Boolean;
     property DestFile: String read FDestFile write FDestFile;
+    property Format: String read FFormat write FFormat;
     { Nil by default. It is filled in the case of OnlyFormats }
     property Formats: TFormatList read GetFormats;
     property LibPath: String read FLibPath write FLibPath;
     property LogDebug: Boolean read FLogDebug write FLogDebug;
     property Logger: TEventLog read FLogger write FLogger;
+    property MediaID: String read FMediaID write FMediaID;
     property Url: String read FUrl write SetUrl;
     property OnlyFormats: Boolean read FOnlyFormats write FOnlyFormats;
     property Options: TStrings read FOptions write SetOptions;
@@ -180,6 +184,11 @@ begin
         aProcess.Parameters.Add('-o'); 
         aProcess.Parameters.Add(FOutputTemplate);
       end;
+      if FFormat<>EmptyStr then
+      begin
+        aProcess.Parameters.Add('-f');
+        aProcess.Parameters.Add(FFormat);
+      end;
       if FOnlyFormats then
         aProcess.Parameters.Add('-F');
       aProcess.Parameters.Add(FUrl);
@@ -215,7 +224,7 @@ begin
         CopyFrom(aOutputStream, aOutputStream.Size);
         Free
       end;
-      Result:=aProcess.ExitStatus=0;
+      Result:=aProcess.ExitCode=0; // or ExitStatus
       DoLog(etDebug, 'End of downloading');
       DoLog(etInfo, 'ExitStatus: '+aProcess.ExitStatus.ToString); 
       DoLog(etInfo, 'ExitCode: '+aProcess.ExitCode.ToString);
@@ -264,6 +273,11 @@ begin
     for i:=0 to aStrings.Count-1 do
       if AnsiStartsStr(KEY1, aStrings[i]) then
       begin
+        FMediaID:=EmptyStr;
+        ExtractBetweenKeys(aStrings[i], KEY1, ':', FMediaID);
+        FMediaID:=Trim(FMediaID);
+        if FMediaID=EmptyStr then
+          DoLog(etError, 'Can''t retrieve media ID');
         j:=i;
         Break;
       end;
