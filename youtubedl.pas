@@ -177,7 +177,7 @@ function TYoutubeDL.ExtractDestFileName(const aOutput: String): String;
 const
   STARTKEY1='[download] Destination:';
   STARTKEY2='[download] ';
-  ENDKEY1=LineEnding;
+  ENDKEY1=#10;
   ENDKEY2=' has already been downloaded';
 begin
   if not ExtractBetweenKeys(aOutput, STARTKEY1, ENDKEY1, Result) then

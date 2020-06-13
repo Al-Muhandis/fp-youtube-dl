@@ -4,6 +4,7 @@
 *.zip
 *.dat
 *.csv
+*.mp4
 # Lazarus compiler-generated binaries (safe to delete)
 *.exe
 *.dll
