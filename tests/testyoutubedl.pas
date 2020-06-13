@@ -95,7 +95,8 @@ end;
 procedure TTestYoutubeDL.YoutubeFormats;
 begin
   FYoutubeDl.OnlyFormats:=True;
-  YoutubeDownloadCommon;
+  YoutubeDownloadCommon;  
+  AssertTrue('Failed to parse the formats', FYoutubeDl.Formats.Count>0);
 end;
 
 initialization

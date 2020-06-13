@@ -15,12 +15,14 @@ type
   TFormatObject = class
   private
     FExtension: String;
-    FSelector: Integer;
+    FResolution: String;
+    FCode: Integer;
   public
-    { selector number }
-    property Selector: Integer read FSelector write FSelector;
+    { Format code }
+    property Code: Integer read FCode write FCode;
     { filename extension}
     property Extension: String read FExtension write FExtension;
+    property Resolution: String read FResolution write FResolution;
   end;
 
   TFormatList =  class(specialize TFPGObjectList<TFormatObject>)
@@ -32,6 +34,7 @@ type
   TYoutubeDL = class
   private
     FDestFile: String;
+    FFormats: TFormatList;
     FHTTPProxyHost: String;
     FHTTPProxyPassword: String;
     FHTTPProxyPort: Word;
@@ -44,20 +47,23 @@ type
     FOutputTemplate: String;
     FUrl: String;
     procedure DoLog(aEventType: TEventType; const aMessage: String);
-    procedure SetLogger(AValue: TEventLog);
-    procedure SetOptions(AValue: TStrings);
-    procedure SetUrl(AValue: String);
+    function GetFormats: TFormatList;
     function InternalExecute: Boolean;
     function ExtractDestFileName(const aOutput: String): String;
+    function ParseFormats(const aOutput: String): Boolean;
+    procedure SetOptions(AValue: TStrings);
+    procedure SetUrl(AValue: String);
   public
     constructor Create;
     destructor Destroy; override;
     function Download(const aUrl: String = ''): Boolean; deprecated;
     function Execute(const aUrl: String = ''): Boolean;
     property DestFile: String read FDestFile write FDestFile;
+    { Nil by default. It is filled in the case of OnlyFormats }
+    property Formats: TFormatList read GetFormats;
     property LibPath: String read FLibPath write FLibPath;
     property LogDebug: Boolean read FLogDebug write FLogDebug;
-    property Logger: TEventLog read FLogger write SetLogger;
+    property Logger: TEventLog read FLogger write FLogger;
     property Url: String read FUrl write SetUrl;
     property OnlyFormats: Boolean read FOnlyFormats write FOnlyFormats;
     property Options: TStrings read FOptions write SetOptions;
@@ -90,6 +96,21 @@ begin
   end
 end;
 
+function ParseFormat(aLine: String; out aCode: Integer; out aExtension: String; out aResolution: String): Boolean;
+const
+  FORMATCODE_WIDTH=13;
+  EXTENSION_WIDTH=11;
+  COLs2_WIDTH=FORMATCODE_WIDTH+EXTENSION_WIDTH;
+begin
+  if Length(aLine)<COLs2_WIDTH then
+    Exit(False);
+  if not TryStrToInt(Trim(Copy(aLine, 0, FORMATCODE_WIDTH)), aCode) then
+    Exit(False);
+  aExtension:=Trim(Copy(aLine, FORMATCODE_WIDTH+1, EXTENSION_WIDTH));
+  aResolution:=Trim(Copy(aLine, COLs2_WIDTH, Length(aLine)-COLs2_WIDTH));
+  Result:=True;
+end;
+
 { TYoutubeDL }
 
 procedure TYoutubeDL.SetUrl(AValue: String);
@@ -104,10 +125,11 @@ begin
     FLogger.Log(aEventType, aMessage);
 end;
 
-procedure TYoutubeDL.SetLogger(AValue: TEventLog);
+function TYoutubeDL.GetFormats: TFormatList;
 begin
-  if FLogger=AValue then Exit;
-  FLogger:=AValue;
+  if not Assigned(FFormats) then
+    FFormats:=TFormatList.Create;
+  Result:=FFormats;
 end;
 
 procedure TYoutubeDL.SetOptions(AValue: TStrings);
@@ -174,9 +196,15 @@ begin
       aStringStream:=TStringStream.Create(EmptyStr);
       try
         aOutputStream.SaveToStream(aStringStream);
-        FDestFile:=ExtractDestFileName(aStringStream.DataString);
-        if FDestFile=EmptyStr then
-          DoLog(etError, 'Destination file is not determined in the output buffer');
+        if not FOnlyFormats then
+        begin
+          FDestFile:=ExtractDestFileName(aStringStream.DataString);
+          if FDestFile=EmptyStr then
+            DoLog(etError, 'Destination file is not determined in the output buffer');
+        end
+        else
+          if not ParseFormats(aStringStream.DataString) then
+            DoLog(etError, 'Can''t parse formats');
       finally
         aStringStream.Free;
       end;
@@ -216,6 +244,51 @@ begin
   Result:=Trim(Result);
 end;
 
+function TYoutubeDL.ParseFormats(const aOutput: String): Boolean;
+const
+  KEY1='[info] Available formats for';
+  KEY2='format code  extension  resolution note';
+var
+  i, j: SizeInt;
+  aStrings: TStringList;
+  aFormat: TFormatObject;
+  aResolution, aExtension: String;
+  aCode: Integer;
+begin
+  Result:=False;
+  Formats.Clear;
+  aStrings:=TStringList.Create;
+  try
+    aStrings.Text:=aOutput;
+    j:=-1;
+    for i:=0 to aStrings.Count-1 do
+      if AnsiStartsStr(KEY1, aStrings[i]) then
+      begin
+        j:=i;
+        Break;
+      end;
+    if j=-1 then
+      Exit;
+    Inc(j);
+    if not AnsiStartsStr(KEY2, aStrings[j]) then
+      Exit;
+    Result:=True;
+    Inc(j);
+    for i:=j to aStrings.Count-1 do
+    begin
+      if not ParseFormat(aStrings[i], aCode, aExtension, aResolution) then
+        Break;
+      aFormat:=TFormatObject.Create;
+      aFormat.Code:=aCode;
+      aFormat.Extension:=aExtension;
+      aFormat.Resolution:=aResolution;
+      FFormats.Add(aFormat);
+    end;
+  finally
+    aStrings.Free;
+  end;
+end;
+
 constructor TYoutubeDL.Create;
 begin
   FOptions:=TStringList.Create;
@@ -225,6 +298,7 @@ end;
 
 destructor TYoutubeDL.Destroy;
 begin
+  FFormats.Free;
   FOptions.Free;
   inherited Destroy;
 end;
