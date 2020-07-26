@@ -15,14 +15,18 @@ type
   TFormatObject = class
   private
     FExtension: String;
+    FHeight: Word;
     FResolution: String;
     FCode: Integer;
+    FWidth: Word;
   public
     { Format code }
     property Code: Integer read FCode write FCode;
     { filename extension}
     property Extension: String read FExtension write FExtension;
-    property Resolution: String read FResolution write FResolution;
+    property Resolution: String read FResolution write FResolution;  
+    property Width: Word read FWidth write FWidth;
+    property Height: Word read FHeight write FHeight;
   end;
 
   TFormatList =  class(specialize TFPGObjectList<TFormatObject>)
@@ -111,7 +115,7 @@ begin
   if not TryStrToInt(Trim(Copy(aLine, 0, FORMATCODE_WIDTH)), aCode) then
     Exit(False);
   aExtension:=Trim(Copy(aLine, FORMATCODE_WIDTH+1, EXTENSION_WIDTH));
-  aResolution:=Trim(Copy(aLine, COLs2_WIDTH, Length(aLine)-COLs2_WIDTH));
+  aResolution:=Trim(Copy(aLine, COLs2_WIDTH, Length(aLine)-COLs2_WIDTH+1));
   Result:=True;
 end;
 
@@ -224,10 +228,8 @@ begin
         CopyFrom(aOutputStream, aOutputStream.Size);
         Free
       end;
-      Result:=aProcess.ExitCode=0; // or ExitStatus
-      DoLog(etDebug, 'End of downloading');
-      DoLog(etInfo, 'ExitStatus: '+aProcess.ExitStatus.ToString); 
-      DoLog(etInfo, 'ExitCode: '+aProcess.ExitCode.ToString);
+      Result:=aProcess.ExitCode=0;
+      DoLog(etInfo, 'Exit. Status: '+aProcess.ExitStatus.ToString+'. Code: '+aProcess.ExitCode.ToString);
       if not Result then
         DoLog(etError, 'Youtube-dl error is occured while downloading! See '+aOutput);
       aOutputStream.Free;
@@ -257,11 +259,13 @@ function TYoutubeDL.ParseFormats(const aOutput: String): Boolean;
 const
   KEY1='[info] Available formats for';
   KEY2='format code  extension  resolution note';
+
+  KEY_AUDIO='audio only';
 var
   i, j: SizeInt;
   aStrings: TStringList;
   aFormat: TFormatObject;
-  aResolution, aExtension: String;
+  aResolution, aExtension, aRes: String;
   aCode: Integer;
 begin
   Result:=False;
@@ -296,6 +300,15 @@ begin
       aFormat.Code:=aCode;
       aFormat.Extension:=aExtension;
       aFormat.Resolution:=aResolution;
+      if not AnsiStartsStr(KEY_AUDIO, aFormat.Resolution) then
+      begin
+        aRes:=ExtractDelimited(1, aFormat.Resolution, [' ']);
+        if aRes<>EmptyStr then
+        begin
+          aFormat.Width:=StrToIntDef(ExtractDelimited(1, aRes, ['x']), 0);
+          aFormat.Height:=StrToIntDef(ExtractDelimited(2, aRes, ['x']), 0);
+        end;
+      end;
       FFormats.Add(aFormat);
     end;
   finally
