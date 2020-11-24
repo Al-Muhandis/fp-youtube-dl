@@ -82,6 +82,9 @@ type
     property HTTPProxyPassword: String read FHTTPProxyPassword write FHTTPProxyPassword;
   end;
 
+var
+  _YoutubeDLExec: String;
+
 implementation
 
 uses
@@ -172,7 +175,7 @@ begin
   try
     aProcess:=TProcess.Create(nil);
     try
-      aProcess.Executable:={$IFDEF MSWINDOWS}'youtube-dl.exe'{$ENDIF}{$IFDEF UNIX}FLibPath+'youtube-dl'{$ENDIF};
+      aProcess.Executable:={$IFDEF UNIX}FLibPath+{$ENDIF}_YoutubeDLExec;
       aProcess.Parameters.AddStrings(FOptions);
       if FHTTPProxyHost<>EmptyStr then
       begin
@@ -329,6 +332,9 @@ begin
   FOptions.Free;
   inherited Destroy;
 end;
+
+initialization
+  _YoutubeDLExec:={$IFDEF MSWINDOWS}'youtube-dl.exe'{$ENDIF}{$IFDEF UNIX}'youtube-dl'{$ENDIF}
 
 end.
 
