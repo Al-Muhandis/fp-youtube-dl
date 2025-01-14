@@ -36,11 +36,11 @@ var
     if FileExists('.gitmodules') then
       if RunCommand('git', ['submodule', 'update', '--init', '--recursive',
         '--force', '--remote'], Answer.Output) then
-        Writeln(stderr, #27'[33m', Answer.Output, #27'[0m')
+        Writeln(#27'[33m', Answer.Output, #27'[0m')
       else
       begin
         ExitCode += 1;
-        Writeln(stderr, #27'[31m', Answer.Output, #27'[0m');
+        Writeln(#27'[31m', Answer.Output, #27'[0m');
       end;
   end;
 
@@ -50,11 +50,11 @@ var
     try
       for Each in List do
         if RunCommand('lazbuild', ['--add-package-link', Each], Answer.Output) then
-          Writeln(stderr, #27'[33m', 'added ', Each, #27'[0m')
+          Writeln(#27'[33m', 'added ', Each, #27'[0m')
         else
         begin
           ExitCode += 1;
-          Writeln(stderr, #27'[31m', 'added ', Each, #27'[0m');
+          Writeln(#27'[31m', 'added ', Each, #27'[0m');
         end;
     finally
       List.Free;
@@ -84,7 +84,7 @@ var
             AddHeader('User-Agent', 'Mozilla/5.0 (compatible; fpweb)');
             AllowRedirect := True;
             Get(Url, Zip);
-            WriteLn(stderr, 'Download from ', Url, ' to ', TempFile);
+            WriteLn('Download from ', Url, ' to ', TempFile);
           finally
             Free;
           end;
@@ -98,7 +98,7 @@ var
             OutputPath := PackagePath;
             Examine;
             UnZipAllFiles;
-            WriteLn(stderr, 'Unzip from ', TempFile, ' to ', PackagePath);
+            WriteLn('Unzip from ', TempFile, ' to ', PackagePath);
           finally
             Free;
           end;
@@ -111,7 +111,7 @@ var
 
   procedure BuildProject(Path: string);
   begin
-    Write(stderr, #27'[33m', 'build from ', Each, #27'[0m');
+    Write(#27'[33m', 'build from ', Each, #27'[0m');
     try
       if RunCommand('lazbuild', ['--build-all', '--recursive',
         '--no-write-project', Each], Answer.Output) then
@@ -123,7 +123,7 @@ var
       end;
     except
       on E: Exception do
-        WriteLn(stderr, 'Error: ' + E.ClassName + #13#10 + E.Message);
+        WriteLn('Error: ' + E.ClassName + #13#10 + E.Message);
     end;
   end;
 
@@ -134,14 +134,14 @@ var
       for Each in List do
       begin
         BuildProject(Each);
-        WriteLn(stderr);
+        WriteLn();
         if Answer.Code <> 0 then
         begin
           for Line in SplitString(Answer.Output, LineEnding) do
             if Pos('Fatal:', Line) <> 0 or Pos('Error:', Line) then
             begin
-              WriteLn(stderr);
-              Writeln(stderr, #27'[31m', Line, #27'[0m');
+              WriteLn();
+              Writeln(#27'[31m', Line, #27'[0m');
             end;
         end
         else
@@ -153,12 +153,12 @@ var
                   [SplitString(Line, ' ')[2], '--all', '--format=plain',
                   '--progress'], Answer.Output) then
                   ExitCode += 1;
-                WriteLn(stderr, Answer.Output);
+                WriteLn(Answer.Output);
                 break;
               end;
             except
               on E: Exception do
-                WriteLn(stderr, 'Error: ' + E.ClassName + #13#10 + E.Message);
+                WriteLn('Error: ' + E.ClassName + #13#10 + E.Message);
             end;
       end;
     finally
@@ -183,21 +183,21 @@ begin
         for Line in SplitString(Answer.Output, LineEnding) do
           if Pos('Fatal:', Line) <> 0 or Pos('Error:', Line) then
           begin
-            WriteLn(stderr);
+            WriteLn();
             Writeln(#27'[31m', Line, #27'[0m');
           end;
       end
       else
         for Line in SplitString(Answer.Output, LineEnding) do
           if Pos('Linking', Line) <> 0 then
-            Writeln(stderr, #27'[32m', ' to ', SplitString(Line, ' ')[2], #27'[0m');
+            Writeln(#27'[32m', ' to ', SplitString(Line, ' ')[2], #27'[0m');
     end;
   finally
     List.Free;
   end;
-  WriteLn(stderr);
+  WriteLn();
   if ExitCode <> 0 then
-    WriteLn(stderr, #27'[31m', 'Errors: ', ExitCode, #27'[0m')
+    WriteLn(#27'[31m', 'Errors: ', ExitCode, #27'[0m')
   else
-    WriteLn(stderr, #27'[32m', 'Errors: ', ExitCode, #27'[0m');
+    WriteLn(#27'[32m', 'Errors: ', ExitCode, #27'[0m');
 end.
