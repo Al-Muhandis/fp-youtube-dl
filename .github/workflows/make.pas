@@ -134,7 +134,6 @@ var
       for Each in List do
       begin
         BuildProject(Each);
-        WriteLn(stderr);
         if Answer.Code <> 0 then
         begin
           for Line in SplitString(Answer.Output, LineEnding) do
@@ -149,9 +148,10 @@ var
             if Pos('Linking', Line) <> 0 then
             try
               begin
-                if not RunCommand('command',
-                  [SplitString(Line, ' ')[2], '--all', '--format=plain',
-                  '--progress'], Answer.Output) then
+                Writeln(stderr, #27'[32m', ' to ', SplitString(Line, ' ')[2], #27'[0m');
+                if not RunCommand(ReplaceStr(SplitString(Line, ' ')[2],
+                  SplitString(Tst, '.')[0], './' + SplitString(Tst, '.')[0]),
+                  ['--all', '--format=plain', '--progress'], Answer.Output) then
                   ExitCode += 1;
                 WriteLn(stderr, Answer.Output);
                 break;
