@@ -36,4 +36,4 @@ jobs:
       run: |
         set -xeuo pipefail
         sudo bash -c 'apt-get update; apt-get install -y lazarus yt-dlp' >/dev/null
-        instantfpc -Fu/usr/lib/lazarus/*/components/lazutils .github/workflows/make.pas
+        instantfpc -Fu/usr/lib/lazarus/*/components/lazutils .github/workflows/make.pas >/dev/null
