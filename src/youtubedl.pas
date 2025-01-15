@@ -24,7 +24,7 @@ type
     property Code: Integer read FCode write FCode;
     { filename extension}
     property Extension: String read FExtension write FExtension;
-    property Resolution: String read FResolution write FResolution;  
+    property Resolution: String read FResolution write FResolution;
     property Width: Word read FWidth write FWidth;
     property Height: Word read FHeight write FHeight;
   end;
@@ -77,7 +77,7 @@ type
     property Options: TStrings read FOptions write SetOptions;
     property OutputTemplate: String read FOutputTemplate write FOutputTemplate;
     property HTTPProxyHost: String read FHTTPProxyHost write FHTTPProxyHost;
-    property HTTPProxyPort: Word read FHTTPProxyPort write FHTTPProxyPort; 
+    property HTTPProxyPort: Word read FHTTPProxyPort write FHTTPProxyPort;
     property HTTPProxyUsername: String read FHTTPProxyUsername write FHTTPProxyUsername;
     property HTTPProxyPassword: String read FHTTPProxyPassword write FHTTPProxyPassword;
   end;
@@ -170,7 +170,7 @@ var
   aBuffer       : array[1..BUF_SIZE] of byte;
   aBytesRead: LongInt;
   aProxyString, aOutput: String;
-begin 
+begin
   Result:=False;
   try
     aProcess:=TProcess.Create(nil);
@@ -188,7 +188,7 @@ begin
       end;
       if FOutputTemplate<>EmptyStr then
       begin
-        aProcess.Parameters.Add('-o'); 
+        aProcess.Parameters.Add('-o');
         aProcess.Parameters.Add(FOutputTemplate);
       end;
       if FFormat<>EmptyStr then
@@ -323,7 +323,7 @@ constructor TYoutubeDL.Create;
 begin
   FOptions:=TStringList.Create;
   {$IFDEF UNIX}
-  FLibPath:='/usr/local/bin/'{$ENDIF};
+  FLibPath:='/usr/bin/'{$ENDIF};
 end;
 
 destructor TYoutubeDL.Destroy;
@@ -334,7 +334,7 @@ begin
 end;
 
 initialization
-  _YoutubeDLExec:={$IFDEF MSWINDOWS}'youtube-dl.exe'{$ENDIF}{$IFDEF UNIX}'youtube-dl'{$ENDIF}
+  _YoutubeDLExec:={$IFDEF MSWINDOWS}'youtube-dl.exe'{$ELSE}'yt-dlp'{$ENDIF}
 
 end.
 
