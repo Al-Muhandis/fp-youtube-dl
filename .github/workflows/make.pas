@@ -168,7 +168,7 @@ type
         List.Free;
       end;
     end;
-    List := FindAllFiles('.', '*.lpk', True);
+    List := FindAllFiles(GetCurrentDir, '*.lpk', True);
     try
       for Each in List do
         AddPackage(Each);
