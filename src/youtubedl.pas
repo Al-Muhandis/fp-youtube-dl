@@ -1,4 +1,4 @@
-unit youtubedl;
+ unit youtubedl;
 
 {$mode objfpc}{$H+}
 
@@ -17,14 +17,14 @@ type
     FExtension: String;
     FHeight: Word;
     FResolution: String;
-    FCode: Integer;
+    FCode: String;
     FWidth: Word;
   public
     { Format code }
-    property Code: Integer read FCode write FCode;
+    property Code: String read FCode write FCode;
     { filename extension}
     property Extension: String read FExtension write FExtension;
-    property Resolution: String read FResolution write FResolution;  
+    property Resolution: String read FResolution write FResolution;
     property Width: Word read FWidth write FWidth;
     property Height: Word read FHeight write FHeight;
   end;
@@ -77,7 +77,7 @@ type
     property Options: TStrings read FOptions write SetOptions;
     property OutputTemplate: String read FOutputTemplate write FOutputTemplate;
     property HTTPProxyHost: String read FHTTPProxyHost write FHTTPProxyHost;
-    property HTTPProxyPort: Word read FHTTPProxyPort write FHTTPProxyPort; 
+    property HTTPProxyPort: Word read FHTTPProxyPort write FHTTPProxyPort;
     property HTTPProxyUsername: String read FHTTPProxyUsername write FHTTPProxyUsername;
     property HTTPProxyPassword: String read FHTTPProxyPassword write FHTTPProxyPassword;
   end;
@@ -107,16 +107,15 @@ begin
   end
 end;
 
-function ParseFormat(aLine: String; out aCode: Integer; out aExtension: String; out aResolution: String): Boolean;
+function ParseFormat(aLine: String; out aCode: String; out aExtension: String; out aResolution: String): Boolean;
 const
-  FORMATCODE_WIDTH=13;
-  EXTENSION_WIDTH=11;
+  FORMATCODE_WIDTH=8;
+  EXTENSION_WIDTH=6;
   COLs2_WIDTH=FORMATCODE_WIDTH+EXTENSION_WIDTH;
 begin
   if Length(aLine)<COLs2_WIDTH then
     Exit(False);
-  if not TryStrToInt(Trim(Copy(aLine, 0, FORMATCODE_WIDTH)), aCode) then
-    Exit(False);
+  aCode:=Trim(Copy(aLine, 0, FORMATCODE_WIDTH));
   aExtension:=Trim(Copy(aLine, FORMATCODE_WIDTH+1, EXTENSION_WIDTH));
   aResolution:=Trim(Copy(aLine, COLs2_WIDTH, Length(aLine)-COLs2_WIDTH+1));
   Result:=True;
@@ -170,7 +169,7 @@ var
   aBuffer       : array[1..BUF_SIZE] of byte;
   aBytesRead: LongInt;
   aProxyString, aOutput: String;
-begin 
+begin
   Result:=False;
   try
     aProcess:=TProcess.Create(nil);
@@ -188,7 +187,7 @@ begin
       end;
       if FOutputTemplate<>EmptyStr then
       begin
-        aProcess.Parameters.Add('-o'); 
+        aProcess.Parameters.Add('-o');
         aProcess.Parameters.Add(FOutputTemplate);
       end;
       if FFormat<>EmptyStr then
@@ -261,15 +260,14 @@ end;
 function TYoutubeDL.ParseFormats(const aOutput: String): Boolean;
 const
   KEY1='[info] Available formats for';
-  KEY2='format code  extension  resolution note';
-
+  KEY2='ID      EXT   RESOLUTION';
   KEY_AUDIO='audio only';
 var
   i, j: SizeInt;
   aStrings: TStringList;
   aFormat: TFormatObject;
   aResolution, aExtension, aRes: String;
-  aCode: Integer;
+  aCode: String;
 begin
   Result:=False;
   Formats.Clear;
@@ -323,7 +321,7 @@ constructor TYoutubeDL.Create;
 begin
   FOptions:=TStringList.Create;
   {$IFDEF UNIX}
-  FLibPath:='/usr/local/bin/'{$ENDIF};
+  FLibPath:='/usr/bin/'{$ENDIF};
 end;
 
 destructor TYoutubeDL.Destroy;
@@ -334,7 +332,7 @@ begin
 end;
 
 initialization
-  _YoutubeDLExec:={$IFDEF MSWINDOWS}'youtube-dl.exe'{$ENDIF}{$IFDEF UNIX}'youtube-dl'{$ENDIF}
+  _YoutubeDLExec:={$IFDEF MSWINDOWS}'youtube-dl.exe'{$ELSE}'yt-dlp'{$ENDIF}
 
 end.
 
