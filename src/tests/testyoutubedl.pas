@@ -82,7 +82,7 @@ begin
   FYoutubeDl.HTTPProxyHost:=FIni.ReadString('Proxy', 'Host', EmptyStr);
   FYoutubeDl.HTTPProxyPort:=FIni.ReadInteger('Proxy', 'Port', 0);
   FYoutubeDl.HTTPProxyUsername:=FIni.ReadString('Proxy', 'Username', EmptyStr);
-  FYoutubeDl.HTTPProxyPassword:=FIni.ReadString('Proxy', 'Password', EmptyStr); 
+  FYoutubeDl.HTTPProxyPassword:=FIni.ReadString('Proxy', 'Password', EmptyStr);
   AssertTrue('Failed to parse!', FYoutubeDl.Execute);
 end;
 
@@ -95,7 +95,7 @@ end;
 procedure TTestYoutubeDL.YoutubeFormats;
 begin
   FYoutubeDl.OnlyFormats:=True;
-  YoutubeDownloadCommon;  
+  YoutubeDownloadCommon;
   AssertTrue('Failed to parse the formats', FYoutubeDl.Formats.Count>0);
   AssertTrue('Failed to parse the media id', FYoutubeDl.MediaID<>EmptyStr);
 end;
