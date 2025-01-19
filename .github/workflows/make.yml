@@ -40,4 +40,5 @@ jobs:
           apt-get install -y lazarus yt-dlp
         ' >/dev/null
         instantfpc -Fu/usr/lib/lazarus/*/components/lazutils \
-          -B .github/workflows/make.pas
+          -B .github/workflows/make.pas || true
+        cat ~youtube-dl.txt
